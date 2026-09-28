@@ -37,7 +37,7 @@ jobs:
           cache: npm
 
       - name: Install semantic-release
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Set up Theos
         uses: ./.github/actions/setup-theos
