@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #import <substrate.h>
 #import <notify.h>
+#import <dispatch/dispatch.h>
 #import <unistd.h>
 
 // The IMP returned by MSHookMessageEx has to be re-cast to the real selector
@@ -23,38 +24,29 @@ static NSString *const kSettingsBundleID = @"com.apple.Preferences";
 static BOOL gSettingsHooksInstalled = NO;
 static id gActiveObserver = nil;
 static dispatch_source_t gPrefsSource = nil;
+static dispatch_source_t gRespringSource = nil;
 
 static const char kTapRecognizerKey = 0;
 
 #pragma mark - Settings panel helpers
 
 static UIViewController *DATopViewController(void) {
+    NSArray<UIWindow *> *windows = DAAllWindows();
     UIWindow *keyWindow = nil;
-    for (UIWindow *window in [UIApplication sharedApplication].windows) {
+    for (UIWindow *window in windows) {
         if (window.isKeyWindow) {
             keyWindow = window;
             break;
         }
     }
     if (keyWindow == nil) {
-        keyWindow = [UIApplication sharedApplication].windows.lastObject;
+        keyWindow = windows.lastObject;
     }
     UIViewController *controller = keyWindow.rootViewController;
     while (controller.presentedViewController != nil) {
         controller = controller.presentedViewController;
     }
     return controller;
-}
-
-static void DARespring(void) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        const char *rootless[] = {"/var/jb/usr/bin/killall", "-9", "SpringBoard", NULL};
-        execv(rootless[0], (char *const *)rootless);
-        const char *rootful[] = {"/usr/bin/killall", "-9", "SpringBoard", NULL};
-        execv(rootful[0], (char *const *)rootful);
-        _exit(0);
-    }
 }
 
 static void DANotifyPrefsChanged(void) {
@@ -110,7 +102,8 @@ static BOOL DAHasTapRecognizer(UITableViewCell *cell) {
     }
 
     if ([text hasPrefix:DA_RESPRING_PREFIX]) {
-        DARespring();
+        // Settings is sandboxed and cannot spawn killall, so ask SpringBoard
+        notify_post(DA_NOTIFY_RESPRING);
     }
 }
 
@@ -227,16 +220,24 @@ static BOOL DATryInstallSettingsHooks(void) {
 
 static void DARegisterPrefsObserver(void) {
     int token = 0;
-    if (notify_register_check(DA_NOTIFY_PREFS_CHANGED, &token) != NOTIFY_STATUS_OK) {
-        return;
+    if (notify_register_check(DA_NOTIFY_PREFS_CHANGED, &token) == NOTIFY_STATUS_OK) {
+        dispatch_queue_t queue = dispatch_queue_create("shin.disableassistants.prefs", DISPATCH_QUEUE_SERIAL);
+        gPrefsSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_PASSIVE, 0, 0, queue);
+        dispatch_source_set_event_handler(gPrefsSource, ^{
+            DAReloadPrefsIfNeeded();
+            DAApplyHiderNow();
+        });
+        dispatch_resume(gPrefsSource);
     }
-    dispatch_queue_t queue = dispatch_queue_create("shin.disableassistants.prefs", DISPATCH_QUEUE_SERIAL);
-    gPrefsSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_PASSIVE, 0, 0, queue);
-    dispatch_source_set_event_handler(gPrefsSource, ^{
-        DAReloadPrefsIfNeeded();
-        DAApplyHiderNow();
-    });
-    dispatch_resume(gPrefsSource);
+
+    token = 0;
+    if (notify_register_check(DA_NOTIFY_RESPRING, &token) == NOTIFY_STATUS_OK) {
+        gRespringSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_PASSIVE, 0, 0, dispatch_get_main_queue());
+        dispatch_source_set_event_handler(gRespringSource, ^{
+            DARespringSpringBoard();
+        });
+        dispatch_resume(gRespringSource);
+    }
 }
 
 #pragma mark - Constructor
@@ -254,6 +255,7 @@ static void DARegisterPrefsObserver(void) {
                                  object:nil
                                   queue:[NSOperationQueue mainQueue]
                              usingBlock:^(NSNotification *note) {
+                        (void)note;
                         DATryInstallSettingsHooks();
                     }];
             }

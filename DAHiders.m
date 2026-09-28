@@ -10,6 +10,9 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <substrate.h>
+#import <dispatch/dispatch.h>
+#import <signal.h>
+#import <unistd.h>
 
 // The IMP returned by MSHookMessageEx has to be re-cast to the real selector
 // signature. Newer compilers warn about it and Theos builds with -Werror.
@@ -141,6 +144,36 @@ static void DAHideObject(id object) {
     if ([object isKindOfClass:[UIView class]]) {
         DAHideView((UIView *)object);
     }
+}
+
+// UIApplication.windows is deprecated since iOS 15, so windows are collected
+// from the connected window scenes instead.
+NSArray<UIWindow *> *DAAllWindows(void) {
+    UIApplication *application = [UIApplication sharedApplication];
+    NSMutableArray<UIWindow *> *windows = [NSMutableArray array];
+    for (UIScene *scene in application.connectedScenes) {
+        if (![scene isKindOfClass:[UIWindowScene class]]) {
+            continue;
+        }
+        for (UIWindow *window in ((UIWindowScene *)scene).windows) {
+            if (window != nil) {
+                [windows addObject:window];
+            }
+        }
+    }
+    if (windows.count == 0) {
+        // Fallback for processes without a window scene; KVC avoids the
+        // deprecation warning.
+        id legacy = [application valueForKey:@"windows"];
+        if ([legacy isKindOfClass:[NSArray class]]) {
+            for (id window in (NSArray *)legacy) {
+                if ([window isKindOfClass:[UIWindow class]]) {
+                    [windows addObject:window];
+                }
+            }
+        }
+    }
+    return windows;
 }
 
 static BOOL DAWindowLooksLikeAssistant(UIWindow *window) {
@@ -302,11 +335,24 @@ void DAApplyHiderNow(void) {
     }
     dispatch_async(dispatch_get_main_queue(), ^{
         DAHookSiriClasses();
-        for (UIWindow *window in [UIApplication sharedApplication].windows) {
+        for (UIWindow *window in DAAllWindows()) {
             if (DAWindowLooksLikeAssistant(window)) {
                 DAHideView(window);
             }
         }
         DALog(@"Re-applied hiding after a preference change");
     });
+}
+
+// Respringing from inside SpringBoard: the cheapest dependency-free respring.
+// The Settings process cannot spawn processes itself, so it asks over a Darwin
+// notification and only SpringBoard actually restarts.
+void DARespringSpringBoard(void) {
+    NSString *bundleID = [NSBundle mainBundle].bundleIdentifier ?: @"";
+    if (![bundleID isEqualToString:@"com.apple.springboard"]) {
+        DALog(@"Ignoring respring request from %@", bundleID);
+        return;
+    }
+    DALog(@"Respring requested, killing SpringBoard");
+    kill(getpid(), SIGKILL);
 }

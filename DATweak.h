@@ -10,6 +10,8 @@
 #define DA_RESPRING_PREFIX @"Respring"
 // Darwin notification posted when the user changes a preference in Settings.
 #define DA_NOTIFY_PREFS_CHANGED "com.shin.disableassistants/PrefsChanged"
+// Darwin notification posted by the Settings panel to ask for a respring.
+#define DA_NOTIFY_RESPRING "com.shin.disableassistants/Respring"
 
 // --- Conditions / state ----------------------------------------------------
 BOOL DAIsJailbroken(void);
@@ -30,6 +32,8 @@ void DALog(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
 // --- UI hiding -------------------------------------------------------------
 void DAInstallHider(void);
 void DAApplyHiderNow(void);
+void DARespringSpringBoard(void);
+NSArray *DAAllWindows(void);
 
 // --- Shared hooking helpers ------------------------------------------------
 IMP DAOriginalIMPForObject(id object, SEL selector);
