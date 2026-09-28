@@ -57,14 +57,33 @@ jobs:
         run: make package FINALPACKAGE=1
 
       - name: Verify package layout
+        shell: bash
         run: |
           set -euo pipefail
           deb=$(ls packages/*.deb)
-          dpkg-deb -c "$deb"
-          # The tweak dylib, the Substrate filter and the PreferenceLoader bundle
-          dpkg-deb -c "$deb" | grep -q 'DynamicLibraries/DisableAssistants.dylib'
-          dpkg-deb -c "$deb" | grep -q 'DynamicLibraries/DisableAssistants.plist'
-          dpkg-deb -c "$deb" | grep -q 'PreferenceBundles/DisableAssistants.bundle/Root.plist'
+          # macOS runners have no dpkg-deb, so unpack the ar archive with Python
+          python3 - "$deb" <<'PY'
+          import io, subprocess, sys, tarfile
+
+          deb = sys.argv[1]
+          members = subprocess.run(["ar", "t", deb], capture_output=True, text=True, check=True).stdout.split()
+          data_name = next(m for m in members if m.startswith("data.tar"))
+          blob = subprocess.run(["ar", "p", deb, data_name], capture_output=True, check=True).stdout
+          with tarfile.open(fileobj=io.BytesIO(blob)) as archive:
+              names = archive.getnames()
+
+          print(f"--- {deb} ({data_name}) ---")
+          print("\n".join(names))
+          required = (
+              "DynamicLibraries/DisableAssistants.dylib",
+              "DynamicLibraries/DisableAssistants.plist",
+              "PreferenceBundles/DisableAssistants.bundle/Root.plist",
+          )
+          missing = [r for r in required if not any(n.endswith(r) for n in names)]
+          if missing:
+              sys.exit("missing from package: " + ", ".join(missing))
+          print("package layout OK")
+          PY
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
