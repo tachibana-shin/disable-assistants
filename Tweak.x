@@ -9,7 +9,6 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <substrate.h>
-#import <notify.h>
 #import <dispatch/dispatch.h>
 #import <unistd.h>
 
@@ -23,8 +22,6 @@ static NSString *const kSettingsBundleID = @"com.apple.Preferences";
 
 static BOOL gSettingsHooksInstalled = NO;
 static id gActiveObserver = nil;
-static dispatch_source_t gPrefsSource = nil;
-static dispatch_source_t gRespringSource = nil;
 
 static const char kTapRecognizerKey = 0;
 
@@ -50,7 +47,8 @@ static UIViewController *DATopViewController(void) {
 }
 
 static void DANotifyPrefsChanged(void) {
-    notify_post(DA_NOTIFY_PREFS_CHANGED);
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                          CFSTR(DA_NOTIFY_PREFS_CHANGED), NULL, NULL, YES);
 }
 
 static BOOL DAHasTapRecognizer(UITableViewCell *cell) {
@@ -103,7 +101,8 @@ static BOOL DAHasTapRecognizer(UITableViewCell *cell) {
 
     if ([text hasPrefix:DA_RESPRING_PREFIX]) {
         // Settings is sandboxed and cannot spawn killall, so ask SpringBoard
-        notify_post(DA_NOTIFY_RESPRING);
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                              CFSTR(DA_NOTIFY_RESPRING), NULL, NULL, YES);
     }
 }
 
@@ -218,26 +217,27 @@ static BOOL DATryInstallSettingsHooks(void) {
 
 #pragma mark - Preference change notifications
 
-static void DARegisterPrefsObserver(void) {
-    int token = 0;
-    if (notify_register_check(DA_NOTIFY_PREFS_CHANGED, &token) == NOTIFY_STATUS_OK) {
-        dispatch_queue_t queue = dispatch_queue_create("shin.disableassistants.prefs", DISPATCH_QUEUE_SERIAL);
-        gPrefsSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_PASSIVE, 0, 0, queue);
-        dispatch_source_set_event_handler(gPrefsSource, ^{
-            DAReloadPrefsIfNeeded();
-            DAApplyHiderNow();
-        });
-        dispatch_resume(gPrefsSource);
-    }
+static void DARPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
+                                    CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    (void)center; (void)observer; (void)name; (void)object; (void)userInfo;
+    DAReloadPrefsIfNeeded();
+    DAApplyHiderNow();
+}
 
-    token = 0;
-    if (notify_register_check(DA_NOTIFY_RESPRING, &token) == NOTIFY_STATUS_OK) {
-        gRespringSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_PASSIVE, 0, 0, dispatch_get_main_queue());
-        dispatch_source_set_event_handler(gRespringSource, ^{
-            DARespringSpringBoard();
-        });
-        dispatch_resume(gRespringSource);
-    }
+static void DARRespringCallback(CFNotificationCenterRef center, void *observer,
+                                CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    (void)center; (void)observer; (void)name; (void)object; (void)userInfo;
+    DARespringSpringBoard();
+}
+
+static void DARegisterPrefsObserver(void) {
+    CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
+    CFNotificationCenterAddObserver(center, NULL, DARPrefsChangedCallback,
+                                     CFSTR(DA_NOTIFY_PREFS_CHANGED), NULL,
+                                     CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(center, NULL, DARRespringCallback,
+                                     CFSTR(DA_NOTIFY_RESPRING), NULL,
+                                     CFNotificationSuspensionBehaviorDeliverImmediately);
 }
 
 #pragma mark - Constructor
