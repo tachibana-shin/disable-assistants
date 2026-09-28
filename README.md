@@ -91,7 +91,7 @@ them, and it is required after the first install.
 | `Tweak.x` | `%ctor`, Settings panel hooks, preference-change notification |
 | `DASettings.m` | Preference reading, jailbreak + Gestures15 detection, status text, log |
 | `DAHiders.m` | Runtime class discovery, hooks, window fallback, shared hook helpers |
-| `Root.plist` | PreferenceLoader panel layout (installed as `DisableAssistants.bundle`) |
+|  `Resources/Root.plist` | PreferenceLoader panel layout (installed as `DisableAssistants.bundle`) |
 | `Filter.plist` | Injects into SpringBoard, SiriViewService and Settings |
 | `DATweak.h` | Shared declarations |
 

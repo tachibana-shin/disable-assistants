@@ -14,10 +14,12 @@ DisableAssistants_FILES = Tweak.x DASettings.m DAHiders.m
 DisableAssistants_CFLAGS = -fobjc-arc
 DisableAssistants_FRAMEWORKS = UIKit Foundation
 
-# Bundle cài đặt trong "Cài đặt" (PreferenceLoader)
+# PreferenceLoader settings bundle (installed as DisableAssistants.bundle).
+# Resources/Root.plist is the panel layout; Theos copies the directory contents
+# into the bundle root, which is where PreferenceLoader looks for Root.plist.
 DisableAssistants_BUNDLE_INSTALL_PATH = /Library/PreferenceBundles
 DisableAssistants_BUNDLE_NAME = DisableAssistants
 DisableAssistants_BUNDLE_EXTENSION = bundle
-DisableAssistants_BUNDLE_RESOURCES = Root.plist
+DisableAssistants_BUNDLE_RESOURCE_DIRS = Resources
 
 include $(THEOS_MAKE_PATH)/tweak.mk
