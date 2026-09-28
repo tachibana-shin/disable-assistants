@@ -29,20 +29,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/theos
-          key: theos-${{ runner.os }}-${{ hashFiles('Makefile', 'control') }}
-          restore-keys: theos-${{ runner.os }}-
+          key: theos-v1-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            theos-v1-${{ runner.os }}-
 
       - name: Install Theos
         shell: bash
         run: |
           set -euo pipefail
           export THEOS="$RUNNER_TEMP/theos"
-          mkdir -p "$THEOS"
 
-          if [ ! -x "$THEOS/bin/theos" ]; then
+          # The cache can hold a half finished clone, so validate before trusting it
+          if [ ! -f "$THEOS/makefiles/common.mk" ]; then
+            rm -rf "$THEOS"
             git clone --depth=1 --recursive https://github.com/theos/theos.git "$THEOS"
-          else
-            git -C "$THEOS" pull --ff-only
           fi
 
           if [ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]; then
