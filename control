@@ -1,0 +1,9 @@
+Package: com.shin.disableassistants
+Name: Disable Assistants
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: An giao dien Siri (Assistants) khi may dang jailbreak va tweak Gestures15 dang bat. Chi lam dung mot viec: an Assistants.
+Maintainer: shin
+Author: shin
+Section: Tweaks
+Depends: mobilesubstrate, preferenzloader

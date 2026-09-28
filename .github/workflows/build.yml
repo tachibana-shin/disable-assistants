@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ '*' ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build rootless deb
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ldid
+        # Theos signs the tweak dylib with ldid on macOS
+        run: brew install ldid
+
+      - name: Restore Theos cache
+        id: cache-theos
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/theos
+          key: theos-${{ runner.os }}-${{ hashFiles('Makefile', 'control') }}
+          restore-keys: theos-${{ runner.os }}-
+
+      - name: Install Theos
+        shell: bash
+        run: |
+          set -euo pipefail
+          export THEOS="$RUNNER_TEMP/theos"
+          mkdir -p "$THEOS"
+
+          if [ ! -x "$THEOS/bin/theos" ]; then
+            git clone --depth=1 --recursive https://github.com/theos/theos.git "$THEOS"
+          else
+            git -C "$THEOS" pull --ff-only
+          fi
+
+          if [ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]; then
+            git clone --depth=1 --recursive https://github.com/theos/sdks "$THEOS/sdks"
+          fi
+
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+          echo "$THEOS/bin" >> "$GITHUB_PATH"
+
+      - name: Build package
+        run: make package FINALPACKAGE=1
+
+      - name: Upload deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: com.shin.disableassistants
+          path: packages/*.deb
+          if-no-files-found: error
+
+      - name: Attach deb to GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" packages/*.deb \
+            --title "$GITHUB_REF_NAME" --generate-notes

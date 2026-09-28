@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupSpecifier</string>
+		<key>label</key>
+		<string>Hide Assistants</string>
+		<key>footerText</key>
+		<string>Only active while the device is jailbroken and the Gestures15 tweak is installed and enabled. Respring once after installing.</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSSwitchCell</string>
+		<key>key</key>
+		<string>enabled</string>
+		<key>default</key>
+		<true/>
+		<key>label</key>
+		<string>Hide the Siri (Assistants) UI</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSSwitchCell</string>
+		<key>key</key>
+		<string>requireGestures15</string>
+		<key>default</key>
+		<true/>
+		<key>label</key>
+		<string>Only run while Gestures15 is enabled</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>label</key>
+		<string>Status: (updating…)</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupSpecifier</string>
+		<key>label</key>
+		<string>Gestures15</string>
+		<key>footerText</key>
+		<string>If the tweak uses a different name or bundle id, edit the field below. Matching is case-insensitive.</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSTextFieldCell</string>
+		<key>key</key>
+		<string>gesturesMatch</string>
+		<key>default</key>
+		<string>gestures15</string>
+		<key>label</key>
+		<string>Tweak name to look for</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupSpecifier</string>
+		<key>label</key>
+		<string>Advanced</string>
+		<key>footerText</key>
+		<string>Diagnostic log: /var/mobile/Library/Logs/DisableAssistants.log</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSSwitchCell</string>
+		<key>key</key>
+		<string>verbose</string>
+		<key>default</key>
+		<false/>
+		<key>label</key>
+		<string>Write diagnostic log</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>label</key>
+		<string>Respring to apply changes</string>
+	</dict>
+</array>
+</plist>
