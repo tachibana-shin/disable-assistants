@@ -11,7 +11,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = DisableAssistants
 
 DisableAssistants_FILES = Tweak.x DASettings.m DAHiders.m
-DisableAssistants_CFLAGS = -fobjc-arc -Wno-cast-function-type-mismatch
+DisableAssistants_CFLAGS = -fobjc-arc
 DisableAssistants_FRAMEWORKS = UIKit Foundation
 
 # Bundle cài đặt trong "Cài đặt" (PreferenceLoader)

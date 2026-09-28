@@ -12,6 +12,12 @@
 #import <notify.h>
 #import <unistd.h>
 
+// The IMP returned by MSHookMessageEx has to be re-cast to the real selector
+// signature. Newer compilers warn about it and Theos builds with -Werror.
+#if __has_warning("-Wcast-function-type-mismatch")
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
+
 static NSString *const kSettingsBundleID = @"com.apple.Preferences";
 
 static BOOL gSettingsHooksInstalled = NO;
