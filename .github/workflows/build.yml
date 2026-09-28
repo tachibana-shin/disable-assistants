@@ -1,5 +1,8 @@
 name: Build
 
+# Verification build for pull requests and pushes. Releases are produced by
+# release.yml (semantic-release).
+
 on:
   push:
     branches: [ main, master ]
@@ -20,38 +23,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install ldid
-        # Theos signs the tweak dylib with ldid on macOS
-        run: brew install ldid
-
-      - name: Restore Theos cache
-        id: cache-theos
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/theos
-          key: theos-v1-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            theos-v1-${{ runner.os }}-
-
-      - name: Install Theos
-        shell: bash
-        run: |
-          set -euo pipefail
-          export THEOS="$RUNNER_TEMP/theos"
-
-          # The cache can hold a half finished clone, so validate before trusting it
-          if [ ! -f "$THEOS/makefiles/common.mk" ]; then
-            rm -rf "$THEOS"
-            git clone --depth=1 --recursive https://github.com/theos/theos.git "$THEOS"
-          fi
-
-          if [ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]; then
-            rm -rf "$THEOS/sdks"   # theos ships an empty sdks/ directory
-            git clone --depth=1 --recursive https://github.com/theos/sdks "$THEOS/sdks"
-          fi
-
-          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
-          echo "$THEOS/bin" >> "$GITHUB_PATH"
+      - name: Set up Theos
+        uses: ./.github/actions/setup-theos
 
       - name: Build package
         run: make package FINALPACKAGE=1
@@ -91,11 +64,3 @@ jobs:
           name: com.shin.disableassistants
           path: packages/*.deb
           if-no-files-found: error
-
-      - name: Attach deb to GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" packages/*.deb \
-            --title "$GITHUB_REF_NAME" --generate-notes

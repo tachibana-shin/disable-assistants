@@ -31,14 +31,36 @@ make package install    # install straight to the device
 
 ### Build with GitHub Actions (no local Theos)
 
-`.github/workflows/build.yml` builds the same deb on `macos-14`: it installs
-`ldid`, clones Theos plus the patched SDKs, runs `make package FINALPACKAGE=1`
-and uploads `packages/*.deb` as a build artifact. Pushing a `v*` tag also
-attaches the deb to a GitHub release.
+`.github/workflows/build.yml` builds the same deb on `macos-14` (via the
+`.github/actions/setup-theos` composite action: `ldid` + Theos + patched SDKs)
+and uploads `packages/*.deb` as a build artifact. It also verifies that the
+dylib, the Substrate filter and `Root.plist` really ended up inside the package.
 
 ```bash
-git push                              # Actions tab -> "com.shin.disableassistants" artifact
-git tag v1.0.0 && git push --tags    # also publishes a release
+git push      # Actions tab -> "com.shin.disableassistants" artifact
+```
+
+## Releases
+
+`.github/workflows/release.yml` runs
+[semantic-release](https://semantic-release.gitbook.io/) on every push to `main`.
+Conventional Commits decide the version:
+
+| Commit | Bump |
+| --- | --- |
+| `feat: …` | minor |
+| `fix: …` / `perf: …` | patch |
+| `feat!: …` or `BREAKING CHANGE: …` | major |
+| `docs:`, `ci:`, `chore:`, `build:` | none (no release) |
+
+Each run bumps `Version:` in `control`, runs `make package FINALPACKAGE=1`
+(`scripts/prepare-release.sh`), commits `CHANGELOG.md` + `control` back to
+`main` as `chore(release): vX.Y.Z [skip ci]`, then creates the GitHub release
+with the `.deb` attached.
+
+```bash
+git commit -m "feat: also hide the assistants panel on iOS 16"   # -> v1.1.0
+git push
 ```
 
 
@@ -94,6 +116,9 @@ them, and it is required after the first install.
 |  `Resources/Root.plist` | PreferenceLoader panel layout (installed as `DisableAssistants.bundle`) |
 | `Filter.plist` | Injects into SpringBoard, SiriViewService and Settings |
 | `DATweak.h` | Shared declarations |
+| `release.config.cjs` | semantic-release plugins, version and asset rules |
+| `scripts/prepare-release.sh` | Bumps `control` and builds the deb during a release |
+| `.github/actions/setup-theos` | Composite action: ldid + Theos + patched SDKs |
 
 ## Troubleshooting
 

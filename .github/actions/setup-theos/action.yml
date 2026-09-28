@@ -1,0 +1,38 @@
+name: Setup Theos
+description: Installs ldid, Theos and the patched SDKs (cached between runs)
+
+runs:
+  using: composite
+  steps:
+    - name: Install ldid
+      shell: bash
+      run: brew install ldid
+
+    - name: Restore Theos cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/theos
+        key: theos-v1-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          theos-v1-${{ runner.os }}-
+
+    - name: Install Theos
+      shell: bash
+      env:
+        THEOS: ${{ runner.temp }}/theos
+      run: |
+        set -euo pipefail
+
+        # The cache can hold a half finished clone, so validate before trusting it
+        if [ ! -f "$THEOS/makefiles/common.mk" ]; then
+          rm -rf "$THEOS"
+          git clone --depth=1 --recursive https://github.com/theos/theos.git "$THEOS"
+        fi
+
+        if [ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]; then
+          rm -rf "$THEOS/sdks"   # theos ships an empty sdks/ directory
+          git clone --depth=1 --recursive https://github.com/theos/sdks "$THEOS/sdks"
+        fi
+
+        echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+        echo "$THEOS/bin" >> "$GITHUB_PATH"

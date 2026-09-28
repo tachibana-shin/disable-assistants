@@ -1,0 +1,19 @@
+{
+  "name": "disable-assistants",
+  "version": "0.0.0-development",
+  "private": true,
+  "description": "Rootless iOS 15+ tweak that hides the Siri/Assistants UI while jailbroken with Gestures15 enabled",
+  "scripts": {
+    "release": "semantic-release"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^11.0.1",
+    "@semantic-release/github": "^12.0.10",
+    "@semantic-release/release-notes-generator": "^14.1.1",
+    "conventional-changelog-conventionalcommits": "^10.4.0",
+    "semantic-release": "^25.0.9"
+  }
+}

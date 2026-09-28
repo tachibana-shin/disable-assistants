@@ -1,0 +1,48 @@
+name: Release
+
+# Conventional commits pushed to main become a new GitHub release with the
+# rootless .deb attached. The tweak version in `control` is bumped and the
+# package is rebuilt during the same run.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # semantic-release needs the full history and all tags
+          persist-credentials: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install semantic-release
+        run: npm install --no-audit --no-fund
+
+      - name: Set up Theos
+        uses: ./.github/actions/setup-theos
+
+      - name: Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
