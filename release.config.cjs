@@ -62,7 +62,8 @@ module.exports = {
             label: 'Disable Assistants ${nextRelease.version} (.deb)',
           },
         ],
-        successComment: false,
+        // The release workflow runs on pushes, so there is no PR to comment on
+        successCommentCondition: 'false',
       },
     ],
   ],
