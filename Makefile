@@ -18,6 +18,6 @@ DisableAssistants_FRAMEWORKS = UIKit Foundation
 DisableAssistants_BUNDLE_INSTALL_PATH = /Library/PreferenceBundles
 DisableAssistants_BUNDLE_NAME = DisableAssistants
 DisableAssistants_BUNDLE_EXTENSION = bundle
-DisableAssistants_BUNDLE_RESOURCE_FILES = Root.plist
+DisableAssistants_BUNDLE_RESOURCES = Root.plist
 
 include $(THEOS_MAKE_PATH)/tweak.mk

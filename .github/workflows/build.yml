@@ -56,6 +56,16 @@ jobs:
       - name: Build package
         run: make package FINALPACKAGE=1
 
+      - name: Verify package layout
+        run: |
+          set -euo pipefail
+          deb=$(ls packages/*.deb)
+          dpkg-deb -c "$deb"
+          # The tweak dylib, the Substrate filter and the PreferenceLoader bundle
+          dpkg-deb -c "$deb" | grep -q 'DynamicLibraries/DisableAssistants.dylib'
+          dpkg-deb -c "$deb" | grep -q 'DynamicLibraries/DisableAssistants.plist'
+          dpkg-deb -c "$deb" | grep -q 'PreferenceBundles/DisableAssistants.bundle/Root.plist'
+
       - name: Upload deb
         uses: actions/upload-artifact@v4
         with:
