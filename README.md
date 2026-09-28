@@ -63,6 +63,10 @@ git commit -m "feat: also hide the assistants panel on iOS 16"   # -> v1.1.0
 git push
 ```
 
+> Careful: the literal string `BREAKING CHANGE` anywhere in a commit body marks
+> that commit as a major release. Write "breaking change" as one word when you
+> only mean it in prose.
+
 
 ## How it works
 
