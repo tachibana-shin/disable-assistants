@@ -46,6 +46,7 @@ jobs:
           fi
 
           if [ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]; then
+            rm -rf "$THEOS/sdks"   # theos ships an empty sdks/ directory
             git clone --depth=1 --recursive https://github.com/theos/sdks "$THEOS/sdks"
           fi
 
